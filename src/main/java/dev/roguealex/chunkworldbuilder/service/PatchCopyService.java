@@ -120,9 +120,7 @@ public final class PatchCopyService {
     }
 
     public PatchCoord selectRandomDonorPatch() {
-        int x = ThreadLocalRandom.current().nextInt(donorMinPatchX, donorMaxPatchX + 1);
-        int z = ThreadLocalRandom.current().nextInt(donorMinPatchZ, donorMaxPatchZ + 1);
-        return new PatchCoord(x, z);
+        return randomDonorPatchRaw();
     }
 
     public PatchCoord selectRandomDonorPatchPreferLand(int maxAttempts) {
@@ -172,6 +170,12 @@ public final class PatchCopyService {
 
     private static int ceilDiv(int value, int divisor) {
         return -Math.floorDiv(-value, divisor);
+    }
+
+    private PatchCoord randomDonorPatchRaw() {
+        int x = ThreadLocalRandom.current().nextInt(donorMinPatchX, donorMaxPatchX + 1);
+        int z = ThreadLocalRandom.current().nextInt(donorMinPatchZ, donorMaxPatchZ + 1);
+        return new PatchCoord(x, z);
     }
 
     public record CopyResult(PatchCoord targetPatch, PatchCoord donorPatch) {

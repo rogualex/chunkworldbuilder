@@ -101,11 +101,19 @@ public final class PatchGenerationTask {
     }
 
     private void prepareChunks() {
-        loadChunkRange(targetWorld, targetMinX, targetMaxX, targetMinZ, targetMaxZ);
-        loadChunkRange(donorWorld, donorMinX, donorMaxX, donorMinZ, donorMaxZ);
+        loadChunkRange(targetWorld, targetMinX, targetMaxX, targetMinZ, targetMaxZ, true, true);
+        loadChunkRange(donorWorld, donorMinX, donorMaxX, donorMinZ, donorMaxZ, true, true);
     }
 
-    private void loadChunkRange(World world, int minX, int maxX, int minZ, int maxZ) {
+    private void loadChunkRange(
+            World world,
+            int minX,
+            int maxX,
+            int minZ,
+            int maxZ,
+            boolean generate,
+            boolean failIfNotLoaded
+    ) {
         int minChunkX = Math.floorDiv(minX, 16);
         int maxChunkX = Math.floorDiv(maxX, 16);
         int minChunkZ = Math.floorDiv(minZ, 16);
@@ -113,7 +121,11 @@ public final class PatchGenerationTask {
 
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                world.loadChunk(chunkX, chunkZ, true);
+                boolean loaded = world.loadChunk(chunkX, chunkZ, generate);
+                if (!loaded && failIfNotLoaded) {
+                    throw new IllegalStateException("Could not load required chunk [" + chunkX + "," + chunkZ
+                            + "] in world " + world.getName());
+                }
             }
         }
     }

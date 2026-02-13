@@ -3,8 +3,14 @@ package dev.roguealex.chunkworldbuilder.service;
 import dev.roguealex.chunkworldbuilder.patch.PatchCoord;
 import dev.roguealex.chunkworldbuilder.patch.PatchStateRegistry;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class WorldExpansionService {
@@ -15,9 +21,13 @@ public final class WorldExpansionService {
     private final WorldEditPatchCopyEngine worldEditEngine;
     private final int maxBlocksPerTick;
     private final int maxPatchesQueued;
-    private final Queue<PatchGenerationRequest> normalQueue;
+    private final PriorityQueue<PatchGenerationRequest> normalQueue;
     private final Queue<PatchGenerationRequest> urgentQueue;
+    private final World targetWorld;
+    private final int patchWidth;
+    private final int patchLength;
     private int taskId;
+    private long sequenceCounter;
     private PatchGenerationTask activeTask;
 
     public WorldExpansionService(
@@ -34,9 +44,15 @@ public final class WorldExpansionService {
         this.worldEditEngine = worldEditEngine;
         this.maxBlocksPerTick = Math.max(1, maxBlocksPerTick);
         this.maxPatchesQueued = Math.max(1, maxPatchesQueued);
-        this.normalQueue = new ArrayDeque<>();
+        this.targetWorld = patchCopyService.getTargetWorld();
+        this.patchWidth = patchCopyService.getPatchWidth();
+        this.patchLength = patchCopyService.getPatchLength();
+        this.normalQueue = new PriorityQueue<>(Comparator
+                .comparingInt(PatchGenerationRequest::priority)
+                .thenComparingLong(PatchGenerationRequest::sequence));
         this.urgentQueue = new ArrayDeque<>();
         this.taskId = -1;
+        this.sequenceCounter = 0L;
     }
 
     public void start() {
@@ -96,9 +112,10 @@ public final class WorldExpansionService {
         }
 
         if (urgent) {
-            urgentQueue.offer(new PatchGenerationRequest(targetPatch, donorPatch));
+            urgentQueue.offer(new PatchGenerationRequest(targetPatch, donorPatch, 0, nextSequence()));
         } else {
-            normalQueue.offer(new PatchGenerationRequest(targetPatch, donorPatch));
+            int priority = computePlayerDistancePriority(targetPatch);
+            normalQueue.offer(new PatchGenerationRequest(targetPatch, donorPatch, priority, nextSequence()));
         }
         return true;
     }
@@ -112,14 +129,28 @@ public final class WorldExpansionService {
     }
 
     private int queueAroundInternal(PatchCoord center, int radiusPatches, boolean urgent) {
-        int added = 0;
+        if (radiusPatches <= 0) {
+            return queuePatch(center, patchCopyService.selectRandomDonorPatch(), urgent) ? 1 : 0;
+        }
+
+        List<Offset> offsets = new ArrayList<>();
         for (int dx = -radiusPatches; dx <= radiusPatches; dx++) {
             for (int dz = -radiusPatches; dz <= radiusPatches; dz++) {
-                if (queuePatch(new PatchCoord(center.patchX() + dx, center.patchZ() + dz),
-                        patchCopyService.selectRandomDonorPatch(),
-                        urgent)) {
-                    added++;
-                }
+                offsets.add(new Offset(dx, dz));
+            }
+        }
+        offsets.sort(Comparator
+                .comparingInt(Offset::ringDistance)
+                .thenComparingInt(Offset::manhattanDistance));
+
+        int added = 0;
+        for (Offset offset : offsets) {
+            if (queuePatch(
+                    new PatchCoord(center.patchX() + offset.dx(), center.patchZ() + offset.dz()),
+                    patchCopyService.selectRandomDonorPatch(),
+                    urgent
+            )) {
+                added++;
             }
         }
         return added;
@@ -130,6 +161,11 @@ public final class WorldExpansionService {
     }
 
     private void tick() {
+        if (Bukkit.isStopping()) {
+            stop();
+            return;
+        }
+
         try {
             if (activeTask == null) {
                 if (!startNextTaskIfAvailable()) {
@@ -175,6 +211,47 @@ public final class WorldExpansionService {
         return true;
     }
 
-    private record PatchGenerationRequest(PatchCoord targetPatch, PatchCoord donorPatch) {
+    private int computePlayerDistancePriority(PatchCoord targetPatch) {
+        int best = Integer.MAX_VALUE;
+        for (Player player : targetWorld.getPlayers()) {
+            if (!player.getWorld().equals(targetWorld)) {
+                continue;
+            }
+
+            PatchCoord playerPatch = PatchCoord.fromBlock(
+                    player.getLocation().getBlockX(),
+                    player.getLocation().getBlockZ(),
+                    patchWidth,
+                    patchLength
+            );
+
+            int distance = Math.abs(targetPatch.patchX() - playerPatch.patchX())
+                    + Math.abs(targetPatch.patchZ() - playerPatch.patchZ());
+            if (distance < best) {
+                best = distance;
+            }
+        }
+
+        if (best == Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE / 2;
+        }
+        return best;
+    }
+
+    private long nextSequence() {
+        return sequenceCounter++;
+    }
+
+    private record PatchGenerationRequest(PatchCoord targetPatch, PatchCoord donorPatch, int priority, long sequence) {
+    }
+
+    private record Offset(int dx, int dz) {
+        int ringDistance() {
+            return Math.max(Math.abs(dx), Math.abs(dz));
+        }
+
+        int manhattanDistance() {
+            return Math.abs(dx) + Math.abs(dz);
+        }
     }
 }

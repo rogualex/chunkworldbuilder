@@ -45,8 +45,7 @@ public final class PlayerMoveWatcher implements Listener {
         if (!event.getTo().getWorld().equals(targetWorld)) {
             return;
         }
-        if (event.getFrom().getBlockX() == event.getTo().getBlockX()
-                && event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
+        if (event.getFrom().distanceSquared(event.getTo()) < 1.0e-6) {
             return;
         }
 
@@ -58,24 +57,43 @@ public final class PlayerMoveWatcher implements Listener {
         lastCheckTimeMillis.put(event.getPlayer().getUniqueId(), now);
 
         maybeQueueExpansion(
-                event.getFrom().getBlockX(),
-                event.getFrom().getBlockZ(),
+                event.getFrom().getX(),
+                event.getFrom().getZ(),
                 event.getTo().getBlockX(),
-                event.getTo().getBlockZ()
+                event.getTo().getBlockZ(),
+                event.getTo().getX(),
+                event.getTo().getZ(),
+                event.getTo().getDirection().getX(),
+                event.getTo().getDirection().getZ()
         );
     }
 
-    private void maybeQueueExpansion(int fromX, int fromZ, int toX, int toZ) {
+    private void maybeQueueExpansion(
+            double fromX,
+            double fromZ,
+            int toBlockX,
+            int toBlockZ,
+            double toX,
+            double toZ,
+            double lookX,
+            double lookZ
+    ) {
         PatchCoord currentPatch = PatchCoord.fromBlock(
-                toX,
-                toZ,
+                toBlockX,
+                toBlockZ,
                 patchWidth,
                 patchLength
         );
 
-        int localX = Math.floorMod(toX, patchWidth);
-        int localZ = Math.floorMod(toZ, patchLength);
-        Edge edge = pickApproachedEdge(localX, localZ, fromX, fromZ, toX, toZ);
+        int localX = Math.floorMod(toBlockX, patchWidth);
+        int localZ = Math.floorMod(toBlockZ, patchLength);
+        double moveX = toX - fromX;
+        double moveZ = toZ - fromZ;
+
+        Edge edge = pickApproachedEdge(localX, localZ, moveX, moveZ);
+        if (edge == null) {
+            edge = pickApproachedEdge(localX, localZ, lookX, lookZ);
+        }
         if (edge == null) {
             return;
         }
@@ -87,30 +105,28 @@ public final class PlayerMoveWatcher implements Listener {
         WEST, EAST, NORTH, SOUTH
     }
 
-    private Edge pickApproachedEdge(int localX, int localZ, int fromX, int fromZ, int toX, int toZ) {
-        int moveX = toX - fromX;
-        int moveZ = toZ - fromZ;
-        int absX = Math.abs(moveX);
-        int absZ = Math.abs(moveZ);
+    private Edge pickApproachedEdge(int localX, int localZ, double moveX, double moveZ) {
+        double absX = Math.abs(moveX);
+        double absZ = Math.abs(moveZ);
 
-        if (absX == 0 && absZ == 0) {
+        if (absX < 1.0e-6 && absZ < 1.0e-6) {
             return null;
         }
 
         if (absX >= absZ) {
-            if (moveX < 0 && localX <= edgeTriggerDistanceBlocks) {
+            if (moveX < 0.0 && localX <= edgeTriggerDistanceBlocks) {
                 return Edge.WEST;
             }
-            if (moveX > 0 && localX >= (patchWidth - 1 - edgeTriggerDistanceBlocks)) {
+            if (moveX > 0.0 && localX >= (patchWidth - 1 - edgeTriggerDistanceBlocks)) {
                 return Edge.EAST;
             }
         }
 
         if (absZ >= absX) {
-            if (moveZ < 0 && localZ <= edgeTriggerDistanceBlocks) {
+            if (moveZ < 0.0 && localZ <= edgeTriggerDistanceBlocks) {
                 return Edge.NORTH;
             }
-            if (moveZ > 0 && localZ >= (patchLength - 1 - edgeTriggerDistanceBlocks)) {
+            if (moveZ > 0.0 && localZ >= (patchLength - 1 - edgeTriggerDistanceBlocks)) {
                 return Edge.SOUTH;
             }
         }

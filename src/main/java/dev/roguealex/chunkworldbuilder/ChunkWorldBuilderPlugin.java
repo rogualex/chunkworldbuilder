@@ -124,6 +124,10 @@ public final class ChunkWorldBuilderPlugin extends JavaPlugin {
                 targetWorld.getSpawnLocation().getBlockZ()
         );
         worldExpansionService.queuePatchPreferLand(spawnPatch, 96);
+        int startupPregenRadius = Math.max(0, getConfig().getInt("generation.pregen-radius-patches"));
+        if (startupPregenRadius > 0) {
+            worldExpansionService.queueAround(spawnPatch, startupPregenRadius);
+        }
 
         Bukkit.getPluginManager().registerEvents(
                 new PlayerMoveWatcher(
