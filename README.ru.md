@@ -74,6 +74,11 @@ English version: [README.md](README.md)
 - При изменении размера патча в существующем мире запускается миграция сетки патчей.
 - При пересоздании целевого мира данные патчей для этого мира автоматически очищаются.
 
+## Download
+
+- Свежий релиз: https://github.com/rogualex/chunkworldbuilder/releases/latest
+- Все релизы: https://github.com/rogualex/chunkworldbuilder/releases
+
 ## Поддержка
 
 Если ChunkWorldBuilder вас порадовал, можно поддержать разработку:
