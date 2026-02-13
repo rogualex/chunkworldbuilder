@@ -74,6 +74,11 @@ Important options:
 - Changing patch size on an existing world triggers patch-grid migration.
 - Recreating the target world clears patch storage for that world automatically.
 
+## Download
+
+- Latest release: https://github.com/rogualex/chunkworldbuilder/releases/latest
+- All releases: https://github.com/rogualex/chunkworldbuilder/releases
+
 ## Support
 
 If ChunkWorldBuilder made you smile, you can support development:
