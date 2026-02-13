@@ -1,0 +1,82 @@
+worlds:
+  target:
+    name: chunk_world
+    create-if-missing: true
+    # Recommended: keep target and donor environments both NORMAL.
+    # Other combinations are possible, but at your own risk.
+    environment: NORMAL
+    use-void-generator: true
+  donor:
+    # Source world for patch copying.
+    name: donor_world
+    # If true, create donor world automatically when missing.
+    create-if-missing: true
+    # NORMAL | NETHER | THE_END
+    environment: NORMAL
+    # NORMAL | FLAT | LARGE_BIOMES | AMPLIFIED
+    type: NORMAL
+    # null = random seed, or set a fixed number for reproducible terrain.
+    seed: null
+    # Whether vanilla structures should be generated in the donor world.
+    generate-structures: true
+    # Optional generator JSON (mainly for FLAT); keep null for normal generation.
+    generator-settings: null
+
+generation:
+  # AUTO | BUKKIT | WORLDEDIT
+  copy-engine: AUTO
+  patch-width: 24
+  patch-length: 24
+  pregen-radius-patches: 3
+  edge-trigger-distance-blocks: 2
+  donor-range-min-x: -5000
+  donor-range-max-x: 5000
+  donor-range-min-z: -5000
+  donor-range-max-z: 5000
+  copy-biomes: true
+  copy-tile-entities: false
+
+performance:
+  max-blocks-per-tick: 20000
+  max-patches-queued: 256
+  player-move-check-interval-ticks: 10
+  worldedit-recommendation:
+    enabled: true
+
+boundary:
+  enabled: true
+  invisible-barrier: true
+  min-y: -64
+  max-y: 319
+  update-interval-ticks: 20
+
+progression:
+  portal-edge-offset-patches: 1
+  end-portal-on-advancement:
+    enabled: true
+    trigger-advancement: minecraft:story/follow_ender_eye
+
+teleport-safety:
+  enabled: true
+  pregen-radius-patches: 1
+  timeout-seconds: 20
+
+movement-safety:
+  enabled: true
+  message-cooldown-seconds: 2
+
+spawn-routing:
+  enabled: true
+  route-on-join: true
+  route-on-respawn: true
+  join-teleport-delay-ticks: 1
+
+support-message:
+  enabled: true
+  delay-ticks: 40
+  use-minimessage: true
+  # Optional custom font key (requires client resource pack), e.g. "myfont:ui".
+  font: ""
+  text: "<gray>If ChunkWorldBuilder made you smile:</gray>"
+  link-text: "<gold><u>Buy me a coffee</u></gold>"
+  link: "https://boosty.to/rogualex"

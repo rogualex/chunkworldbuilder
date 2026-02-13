@@ -1,0 +1,10 @@
+name: ChunkWorldBuilder
+main: dev.roguealex.chunkworldbuilder.ChunkWorldBuilderPlugin
+version: 0.1.0
+api-version: '1.21'
+author: roguealex
+softdepend: [WorldEdit]
+permissions:
+  chunkworldbuilder.admin:
+    description: Receives admin-only informational messages from ChunkWorldBuilder.
+    default: op
